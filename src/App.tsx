@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Memory, LoveQuote, CoupleConfig, ActiveTab } from './types';
 import { INITIAL_MEMORIES, INITIAL_STORY_MEMORIES, INITIAL_QUOTES, INITIAL_COUPLE_CONFIG } from './data/initialMemories';
 import { Header } from '../components/Header';
@@ -13,6 +13,8 @@ import { EditCoupleModal } from '../components/EditCoupleModal';
 import { PhotoLightboxModal } from '../components/PhotoLightboxModal';
 import { LoveLetterModal } from '../components/LoveLetterModal';
 import { toggleRomanticAudio, isAudioActive } from './utils/romanticAudio';
+import { useSyncedState } from './lib/useSyncedState';
+import { isFirebaseConfigured } from './lib/firebase';
 
 const STORAGE_KEY_MEMORIES = 'our_memories_data_v14';
 const STORAGE_KEY_STORY = 'our_memories_story_v1';
@@ -20,48 +22,33 @@ const STORAGE_KEY_CONFIG = 'our_memories_config_v2';
 const STORAGE_KEY_QUOTES = 'our_memories_quotes_v2';
 
 export default function App() {
-  // 1. App State with LocalStorage persistence
-  const [memories, setMemories] = useState<Memory[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_MEMORIES);
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // Fallback
-    }
-    return INITIAL_MEMORIES;
-  });
+  // 1. App State sincronizado con Firestore (con fallback a localStorage).
+  // La colección principal de recuerdos.
+  const [memories, setMemories] = useSyncedState<Memory[]>(
+    'memories',
+    INITIAL_MEMORIES,
+    STORAGE_KEY_MEMORIES
+  );
 
-  // "Nuestra Historia" (Our Story) es una pantalla independiente con su propia lista.
-  // Arranca vacía y se persiste por separado, sin afectar a Favoritos ni al resto.
-  const [storyMemories, setStoryMemories] = useState<Memory[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_STORY);
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // Fallback
-    }
-    return INITIAL_STORY_MEMORIES;
-  });
+  // "Nuestra Historia" (Our Story) es una pantalla independiente con su propia
+  // lista. Arranca vacía y se sincroniza por separado.
+  const [storyMemories, setStoryMemories] = useSyncedState<Memory[]>(
+    'story',
+    INITIAL_STORY_MEMORIES,
+    STORAGE_KEY_STORY
+  );
 
-  const [config, setConfig] = useState<CoupleConfig>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_CONFIG);
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // Fallback
-    }
-    return INITIAL_COUPLE_CONFIG;
-  });
+  const [config, setConfig] = useSyncedState<CoupleConfig>(
+    'config',
+    INITIAL_COUPLE_CONFIG,
+    STORAGE_KEY_CONFIG
+  );
 
-  const [quotes, setQuotes] = useState<LoveQuote[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_QUOTES);
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // Fallback
-    }
-    return INITIAL_QUOTES;
-  });
+  const [quotes] = useSyncedState<LoveQuote[]>(
+    'quotes',
+    INITIAL_QUOTES,
+    STORAGE_KEY_QUOTES
+  );
 
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<ActiveTab>('story');
@@ -76,38 +63,7 @@ export default function App() {
   const [selectedPhoto, setSelectedPhoto] = useState<Memory | null>(null);
   const [isLetterModalOpen, setIsLetterModalOpen] = useState(false);
 
-  // Save to LocalStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_MEMORIES, JSON.stringify(memories));
-    } catch (e) {
-      console.warn('LocalStorage save error', e);
-    }
-  }, [memories]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_STORY, JSON.stringify(storyMemories));
-    } catch (e) {
-      console.warn('LocalStorage save error', e);
-    }
-  }, [storyMemories]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(config));
-    } catch (e) {
-      console.warn('LocalStorage save error', e);
-    }
-  }, [config]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_QUOTES, JSON.stringify(quotes));
-    } catch (e) {
-      console.warn('LocalStorage save error', e);
-    }
-  }, [quotes]);
+  // La persistencia (Firestore + caché local) la maneja useSyncedState.
 
   // Handlers
   const handleToggleFavorite = (id: string, e?: React.MouseEvent) => {
@@ -296,6 +252,13 @@ export default function App() {
         onClose={() => setIsLetterModalOpen(false)}
         config={config}
       />
+
+      {/* Aviso discreto: la sincronización en la nube no está activa. */}
+      {!isFirebaseConfigured && (
+        <div className="fixed bottom-24 left-3 z-40 px-2.5 py-1 bg-[#fcf2e7] border border-[#e2d9ce] rounded-full text-[10px] font-sans text-[#7d562d] shadow-xs pointer-events-none">
+          💾 Modo local (sin sincronización)
+        </div>
+      )}
     </div>
   );
 }
