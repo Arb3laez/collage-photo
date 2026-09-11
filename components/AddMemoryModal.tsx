@@ -1,7 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X, Upload, Sparkles, Image as ImageIcon, MapPin, Music2, Check } from 'lucide-react';
 import { Memory, MemoryCategory } from '../src/types';
 import { PRESET_GALLERY_PHOTOS } from '../src/data/initialMemories';
+import { compressImageFile } from '../src/utils/imageCompression';
 
 interface AddMemoryModalProps {
   isOpen: boolean;
@@ -14,8 +15,6 @@ export const AddMemoryModal: React.FC<AddMemoryModalProps> = ({
   onClose,
   onAddMemory,
 }) => {
-  if (!isOpen) return null;
-
   const [title, setTitle] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [category, setCategory] = useState<MemoryCategory>('special');
@@ -31,19 +30,36 @@ export const AddMemoryModal: React.FC<AddMemoryModalProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileUpload = (file: File) => {
+  // Al abrir el modal, empieza siempre con un formulario limpio.
+  useEffect(() => {
+    if (isOpen) {
+      setTitle('');
+      setDate(new Date().toISOString().split('T')[0]);
+      setCategory('special');
+      setImageUrl(PRESET_GALLERY_PHOTOS[0].url);
+      setCaption('');
+      setStory('');
+      setLocation('');
+      setSongTag('');
+      setWashiColor('rose');
+      setIsFavorite(false);
+      setImageSourceMode('preset');
+      setDragActive(false);
+    }
+  }, [isOpen]);
+
+  const handleFileUpload = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       alert('Por favor selecciona un archivo de imagen válido.');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (e.target?.result) {
-        setImageUrl(e.target.result as string);
-        setImageSourceMode('upload');
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      const dataUrl = await compressImageFile(file);
+      setImageUrl(dataUrl);
+      setImageSourceMode('upload');
+    } catch {
+      alert('No se pudo procesar la imagen. Intenta con otra foto.');
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -98,6 +114,8 @@ export const AddMemoryModal: React.FC<AddMemoryModalProps> = ({
 
     onClose();
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs overflow-y-auto">

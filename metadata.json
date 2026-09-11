@@ -1,6 +1,5 @@
 {
   "name": "Our Memories",
   "description": "Álbum de recuerdos interactivo y collage con línea de tiempo cronológica y contador de aniversario para parejas.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "requestFramePermissions": []
 }

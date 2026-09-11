@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Heart, Calendar, Users, Sparkles } from 'lucide-react';
 import { CoupleConfig } from '../src/types';
 
@@ -15,13 +15,22 @@ export const EditCoupleModal: React.FC<EditCoupleModalProps> = ({
   config,
   onSaveConfig,
 }) => {
-  if (!isOpen) return null;
-
   const [partner1Name, setPartner1Name] = useState(config.partner1Name);
   const [partner2Name, setPartner2Name] = useState(config.partner2Name);
   const [startDate, setStartDate] = useState(config.relationshipStartDate.split('T')[0]);
   const [anniversaryDate, setAnniversaryDate] = useState(config.anniversaryDate.split('T')[0]);
   const [motto, setMotto] = useState(config.motto);
+
+  // Al abrir, refresca el formulario con la configuración actual.
+  useEffect(() => {
+    if (isOpen) {
+      setPartner1Name(config.partner1Name);
+      setPartner2Name(config.partner2Name);
+      setStartDate(config.relationshipStartDate.split('T')[0]);
+      setAnniversaryDate(config.anniversaryDate.split('T')[0]);
+      setMotto(config.motto);
+    }
+  }, [isOpen, config]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +44,8 @@ export const EditCoupleModal: React.FC<EditCoupleModalProps> = ({
     });
     onClose();
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">

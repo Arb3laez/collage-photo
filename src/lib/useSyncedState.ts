@@ -4,6 +4,21 @@ import { db, isFirebaseConfigured } from './firebase';
 
 type Updater<T> = T | ((prev: T) => T);
 
+// Evita spamear al usuario: como mucho un aviso de error de guardado cada 10 s.
+let lastSaveErrorAlert = 0;
+function notifySaveError(docId: string, err: unknown) {
+  console.error('Error al guardar', docId, err);
+  const now = Date.now();
+  if (typeof window !== 'undefined' && now - lastSaveErrorAlert > 10_000) {
+    lastSaveErrorAlert = now;
+    // El caso típico: la imagen supera el límite de 1 MB por documento de Firestore.
+    window.alert(
+      'No se pudieron guardar los cambios en la nube (revisa tu conexión o el tamaño de la foto). ' +
+        'Tus cambios siguen guardados en este dispositivo.'
+    );
+  }
+}
+
 /**
  * Estado sincronizado con Firestore en tiempo real.
  * - Si Firebase está configurado: la nube es la fuente de verdad; los cambios
@@ -74,7 +89,7 @@ export function useSyncedState<T>(
       }
       if (isFirebaseConfigured && db) {
         setDoc(doc(db, 'app', docId), { value: resolved }).catch((e) =>
-          console.error('Error al guardar', docId, e)
+          notifySaveError(docId, e)
         );
       }
       return resolved;

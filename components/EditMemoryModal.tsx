@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Upload, Check } from 'lucide-react';
 import { Memory, MemoryCategory } from '../src/types';
+import { compressImageFile } from '../src/utils/imageCompression';
 
 interface EditMemoryModalProps {
   isOpen: boolean;
@@ -47,16 +48,16 @@ export const EditMemoryModal: React.FC<EditMemoryModalProps> = ({
 
   if (!isOpen || !memory) return null;
 
-  const handleFileUpload = (file: File) => {
+  const handleFileUpload = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       alert('Por favor selecciona un archivo de imagen válido.');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (e.target?.result) setImageUrl(e.target.result as string);
-    };
-    reader.readAsDataURL(file);
+    try {
+      setImageUrl(await compressImageFile(file));
+    } catch {
+      alert('No se pudo procesar la imagen. Intenta con otra foto.');
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Heart, Sparkles, Send, Check } from 'lucide-react';
 import { CoupleConfig } from '../src/types';
 
@@ -13,8 +13,6 @@ export const LoveLetterModal: React.FC<LoveLetterModalProps> = ({
   onClose,
   config,
 }) => {
-  if (!isOpen) return null;
-
   const defaultLetter = `Mi amor,
 
 Desde el primer día que nuestras miradas se cruzaron, supe que mi mundo había cambiado para siempre. 
@@ -29,11 +27,21 @@ Por mil aventuras más tomados de la mano.`;
   const [isEditing, setIsEditing] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
+  // Al abrir, vuelve al modo lectura y limpia el aviso de guardado.
+  useEffect(() => {
+    if (isOpen) {
+      setIsEditing(false);
+      setSavedSuccess(false);
+    }
+  }, [isOpen]);
+
   const handleSave = () => {
     setIsEditing(false);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
