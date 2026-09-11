@@ -57,8 +57,8 @@ export const AddMemoryModal: React.FC<AddMemoryModalProps> = ({
       const dataUrl = await compressImageFile(file);
       setImageUrl(dataUrl);
       setImageSourceMode('upload');
-    } catch {
-      alert('No se pudo procesar la imagen. Intenta con otra foto.');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'No se pudo procesar la imagen. Intenta con otra foto.');
     }
   };
 

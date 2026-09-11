@@ -55,8 +55,8 @@ export const EditMemoryModal: React.FC<EditMemoryModalProps> = ({
     }
     try {
       setImageUrl(await compressImageFile(file));
-    } catch {
-      alert('No se pudo procesar la imagen. Intenta con otra foto.');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'No se pudo procesar la imagen. Intenta con otra foto.');
     }
   };
 
