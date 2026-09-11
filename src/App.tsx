@@ -117,6 +117,21 @@ export default function App() {
     }
   };
 
+  const handleDeleteMemory = (id: string) => {
+    // El recuerdo puede vivir en cualquiera de las dos listas; filtramos en ambas.
+    setMemories((prev) => prev.filter((mem) => mem.id !== id));
+    setStoryMemories((prev) => prev.filter((mem) => mem.id !== id));
+    // Cierra el visor y el editor si estaban mostrando esta foto.
+    if (selectedPhoto && selectedPhoto.id === id) {
+      setIsLightboxOpen(false);
+      setSelectedPhoto(null);
+    }
+    if (editingMemory && editingMemory.id === id) {
+      setIsEditModalOpen(false);
+      setEditingMemory(null);
+    }
+  };
+
   const handleNextQuote = () => {
     setCurrentQuoteIndex((prev) => (prev + 1) % quotes.length);
   };
@@ -229,6 +244,7 @@ export default function App() {
         memory={editingMemory}
         onClose={() => setIsEditModalOpen(false)}
         onSave={handleUpdateMemory}
+        onDelete={handleDeleteMemory}
       />
 
       <EditCoupleModal
@@ -245,6 +261,7 @@ export default function App() {
         memories={allMemories}
         onSelectMemory={setSelectedPhoto}
         onToggleFavorite={handleToggleFavorite}
+        onDelete={handleDeleteMemory}
       />
 
       <LoveLetterModal

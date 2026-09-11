@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Upload, Check } from 'lucide-react';
+import { X, Upload, Check, Trash2 } from 'lucide-react';
 import { Memory, MemoryCategory } from '../src/types';
 import { compressImageFile } from '../src/utils/imageCompression';
 
@@ -8,6 +8,7 @@ interface EditMemoryModalProps {
   memory: Memory | null;
   onClose: () => void;
   onSave: (id: string, data: Partial<Memory>) => void;
+  onDelete: (id: string) => void;
 }
 
 export const EditMemoryModal: React.FC<EditMemoryModalProps> = ({
@@ -15,6 +16,7 @@ export const EditMemoryModal: React.FC<EditMemoryModalProps> = ({
   memory,
   onClose,
   onSave,
+  onDelete,
 }) => {
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
@@ -27,6 +29,7 @@ export const EditMemoryModal: React.FC<EditMemoryModalProps> = ({
   const [washiColor, setWashiColor] = useState<'rose' | 'gold' | 'tan'>('rose');
   const [isFavorite, setIsFavorite] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -43,6 +46,7 @@ export const EditMemoryModal: React.FC<EditMemoryModalProps> = ({
       setSongTag(memory.songTag ?? '');
       setWashiColor(memory.washiColor ?? 'rose');
       setIsFavorite(!!memory.isFavorite);
+      setConfirmingDelete(false);
     }
   }, [memory]);
 
@@ -298,6 +302,43 @@ export const EditMemoryModal: React.FC<EditMemoryModalProps> = ({
               />
               <span>En Favoritos ♥</span>
             </label>
+          </div>
+
+          {/* Zona de eliminar (con confirmación en dos pasos) */}
+          <div className="pt-2 border-t border-[#e2d9ce]">
+            {!confirmingDelete ? (
+              <button
+                type="button"
+                onClick={() => setConfirmingDelete(true)}
+                className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#b3261e] hover:text-[#8c1d18] cursor-pointer mt-2"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Eliminar este recuerdo
+              </button>
+            ) : (
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 bg-[#fdecea] border border-[#f3c9c4] rounded-xs p-2.5">
+                <span className="text-[11px] text-[#8c1d18] font-medium">
+                  ¿Eliminar para siempre? No se puede deshacer.
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingDelete(false)}
+                    className="px-3 py-1 text-[11px] rounded-full bg-white border border-[#d4c4b7] text-[#50453b] hover:bg-[#f6ece1] cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDelete(memory.id)}
+                    className="px-3 py-1 text-[11px] rounded-full bg-[#b3261e] text-white hover:bg-[#8c1d18] active:scale-95 transition-all cursor-pointer inline-flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Submit Button */}

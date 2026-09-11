@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, ChevronLeft, ChevronRight, Heart, MapPin, Music2, Calendar, Share2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, ChevronLeft, ChevronRight, Heart, MapPin, Music2, Calendar, Trash2 } from 'lucide-react';
 import { Memory } from '../src/types';
 import { formatDateSpanish } from '../src/utils/timeCalculations';
 
@@ -10,6 +10,7 @@ interface PhotoLightboxModalProps {
   memories: Memory[];
   onSelectMemory: (mem: Memory) => void;
   onToggleFavorite: (id: string, e?: React.MouseEvent) => void;
+  onDelete: (id: string) => void;
 }
 
 export const PhotoLightboxModal: React.FC<PhotoLightboxModalProps> = ({
@@ -19,7 +20,15 @@ export const PhotoLightboxModal: React.FC<PhotoLightboxModalProps> = ({
   memories,
   onSelectMemory,
   onToggleFavorite,
+  onDelete,
 }) => {
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  // Al cambiar de foto (o cerrar), cancela cualquier confirmación de borrado pendiente.
+  useEffect(() => {
+    setConfirmingDelete(false);
+  }, [memory?.id, isOpen]);
+
   if (!isOpen || !memory) return null;
 
   const currentIndex = memories.findIndex((m) => m.id === memory.id);
@@ -109,7 +118,40 @@ export const PhotoLightboxModal: React.FC<PhotoLightboxModalProps> = ({
               </p>
             </div>
 
+            {!confirmingDelete && (
+              <button
+                onClick={() => setConfirmingDelete(true)}
+                title="Eliminar recuerdo"
+                className="p-2 text-[#b3261e] hover:text-white hover:bg-[#b3261e] border border-[#f3c9c4] rounded-full active:scale-90 transition-all cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
+
+          {/* Confirmación de borrado en dos pasos */}
+          {confirmingDelete && (
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-[#fdecea] border border-[#f3c9c4] rounded-xs p-2.5">
+              <span className="text-[11px] text-[#8c1d18] font-medium">
+                ¿Eliminar este recuerdo para siempre? No se puede deshacer.
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setConfirmingDelete(false)}
+                  className="px-3 py-1 text-[11px] rounded-full bg-white border border-[#d4c4b7] text-[#50453b] hover:bg-[#f6ece1] cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => onDelete(memory.id)}
+                  className="px-3 py-1 text-[11px] rounded-full bg-[#b3261e] text-white hover:bg-[#8c1d18] active:scale-95 transition-all cursor-pointer inline-flex items-center gap-1"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          )}
 
           {memory.caption && (
             <p className="text-sm font-sans text-[#50453b] font-medium leading-relaxed">
