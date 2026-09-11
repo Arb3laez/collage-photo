@@ -4,6 +4,14 @@ import { db, isFirebaseConfigured } from './firebase';
 
 type Updater<T> = T | ((prev: T) => T);
 
+// Firestore NO admite valores `undefined` (lanza "Unsupported field value:
+// undefined"). Un round-trip por JSON descarta las propiedades undefined y deja
+// solo datos serializables, que es exactamente lo que también cacheamos en local.
+function toFirestoreSafe(serialized: string | null, fallback: unknown): unknown {
+  if (serialized != null) return JSON.parse(serialized);
+  return JSON.parse(JSON.stringify(fallback ?? null));
+}
+
 // Evita spamear al usuario: como mucho un aviso de error de guardado cada 10 s.
 let lastSaveErrorAlert = 0;
 function notifySaveError(docId: string, err: unknown) {
@@ -64,7 +72,7 @@ export function useSyncedState<T>(
           }
         } else {
           // Primera vez: sembramos el documento con el contenido base.
-          setDoc(ref, { value: seedRef.current }).catch((e) =>
+          setDoc(ref, { value: toFirestoreSafe(null, seedRef.current) }).catch((e) =>
             console.error('Error al inicializar', docId, e)
           );
         }
@@ -82,15 +90,31 @@ export function useSyncedState<T>(
     setValue((prev) => {
       const resolved =
         typeof next === 'function' ? (next as (p: T) => T)(prev) : next;
+      let serialized: string | null = null;
       try {
-        localStorage.setItem(localKey, JSON.stringify(resolved));
+        serialized = JSON.stringify(resolved);
       } catch {
-        // ignore
+        // valor no serializable; seguimos, Firestore usará el fallback
+      }
+      if (serialized != null) {
+        try {
+          localStorage.setItem(localKey, serialized);
+        } catch {
+          // ignore (p. ej. cuota de localStorage llena)
+        }
       }
       if (isFirebaseConfigured && db) {
-        setDoc(doc(db, 'app', docId), { value: resolved }).catch((e) =>
-          notifySaveError(docId, e)
-        );
+        try {
+          // setDoc valida y puede lanzar de forma SÍNCRONA si los datos no son
+          // válidos (p. ej. contienen `undefined`). Saneamos y lo envolvemos en
+          // try/catch para que nunca rompa el renderizado de React.
+          const safe = toFirestoreSafe(serialized, resolved);
+          setDoc(doc(db, 'app', docId), { value: safe }).catch((e) =>
+            notifySaveError(docId, e)
+          );
+        } catch (e) {
+          notifySaveError(docId, e);
+        }
       }
       return resolved;
     });
